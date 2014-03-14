@@ -522,12 +522,14 @@ Command.prototype.parseOptions = function(argv){
     , len = argv.length
     , literal
     , option
-    , arg;
+    , arg
+    , childOption;
 
   var unknownOptions = [];
 
   // parse options
   for (var i = 0; i < len; ++i) {
+    childOption = false;
     arg = argv[i];
 
     // literal args after --
@@ -543,6 +545,24 @@ Command.prototype.parseOptions = function(argv){
 
     // find matching Option
     option = this.optionFor(arg);
+    if (!option) {
+      for (var command in this.commands) {
+        option = this.commands[command].optionFor(arg);
+        if (option) {
+          childOption = true;
+          break;
+        }
+      }
+    }
+
+    if (childOption) {
+      unknownOptions.push(arg);
+
+      if ((option.required || option.optional) && argv[i+1] && '-' != argv[i+1][0]) {
+        unknownOptions.push(argv[++i]);
+      }
+      continue;
+    }
 
     // option is defined
     if (option) {
